@@ -44,25 +44,81 @@ Cliente → BFF → Microsserviços (Auth, Core, Notificação)
 O ecossistema é composto por quatro serviços independentes, cada um com responsabilidade bem definida, seguindo princípios de **Single Responsibility** e **Arquitetura Distribuída**.
 
 ````mermaid
-flowchart TD
-    User["📱 Cliente / Front-end"] -->|"HTTP/JSON"| BFF("🟢 BFF Agendador :8083")
-    
-    subgraph "Camada de Orquestração"
-        BFF -->|"Validação & Login"| Auth("🔵 Usuário Service :8080")
-        BFF -->|"Gestão de Tarefas"| Core("🟠 Tarefas Core :8081")
-        BFF -->|"Disparo de Email"| Notif("🟣 Notificação Service :8082")
-    end
-    
-    subgraph "Automação (Cron Job)"
-        BFF -- "A cada 5 min" --> BFF
-        BFF -- "Busca Tarefas Próximas" --> Core
-        Core -- "Lista de Tarefas" --> BFF
-        BFF -- "Envia Email HTML" --> Notif
-        BFF -- "Atualiza Status" --> Core
+flowchart TB
+    %% =========================
+    %% 🎨 Definição de Estilos
+    %% =========================
+    classDef client fill:#fafafa,stroke:#1a1a1a,stroke-width:2px,color:#1a1a1a
+    classDef gateway fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px,color:#0d47a1,font-weight:bold
+    classDef service fill:#fff8e1,stroke:#f57f17,stroke-width:2px,color:#4e342e
+    classDef infra fill:#ede7f6,stroke:#5e35b1,stroke-width:2px,color:#311b92
+    classDef database fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px,color:#1b5e20
+    classDef scheduler fill:#fce4ec,stroke:#ad1457,stroke-width:2px,color:#880e4f
+
+    %% =========================
+    %% 👤 Camada Cliente
+    %% =========================
+    Cliente["📱 Aplicação Cliente<br/>(Web / Mobile)"]:::client
+
+    %% =========================
+    %% 🚪 Camada de Orquestração
+    %% =========================
+    subgraph Camada_BFF ["Camada de Orquestração (Backend for Frontend)"]
+        BFF["🚀 BFF Agendador<br/>(Spring Boot - :8083)"]:::gateway
+        Agendador[["⏰ Agendador de Tarefas<br/>(Quartz / @Scheduled)"]]:::scheduler
     end
 
-    Auth --> Postgres[("🐘 PostgreSQL")]
-    Core --> Mongo[("🍃 MongoDB")]
+    %% =========================
+    %% 🧠 Camada de Microsserviços
+    %% =========================
+    subgraph Microsservicos ["Camada de Domínio (Microsserviços)"]
+        direction LR
+        AuthService["🔐 Serviço de Identidade<br/>(User Service - :8080)<br/>JWT / Autenticação"]:::service
+        TaskService["⚙️ Serviço de Tarefas<br/>(Core Service - :8081)<br/>Regras de Negócio"]:::service
+        MailService["📧 Serviço de Notificação<br/>(Mail Service - :8082)<br/>Envio de Emails"]:::infra
+    end
+
+    %% =========================
+    %% 🗄️ Camada de Persistência
+    %% =========================
+    subgraph Persistencia ["Camada de Dados"]
+        Postgres[("🐘 PostgreSQL<br/>Dados de Usuário")]:::database
+        Mongo[("🍃 MongoDB<br/>Tarefas e Eventos")]:::database
+    end
+
+    %% =========================
+    %% 🔄 Fluxo Externo
+    %% =========================
+    Cliente -->|"HTTP REST<br/>JSON + JWT"| BFF
+
+    %% =========================
+    %% 🔗 Comunicação Interna
+    %% =========================
+    BFF <-->|"OpenFeign<br/>Validação de Token"| AuthService
+    BFF <-->|"OpenFeign<br/>CRUD de Tarefas"| TaskService
+    BFF -->|"OpenFeign<br/>Disparo de Email"| MailService
+
+    %% =========================
+    %% 💾 Acesso a Banco
+    %% =========================
+    AuthService --- Postgres
+    TaskService --- Mongo
+
+    %% =========================
+    %% ⏳ Automação (Fluxo Assíncrono)
+    %% =========================
+    Agendador -.->|"1️⃣ Execução via Cron"| BFF
+    BFF -.->|"2️⃣ Buscar Tarefas Pendentes"| TaskService
+    BFF -.->|"3️⃣ Enviar Notificações"| MailService
+    BFF -.->|"4️⃣ Atualizar Status"| TaskService
+
+    %% =========================
+    %% 🎯 Estilização de Links
+    %% =========================
+    linkStyle 0 stroke:#0d47a1,stroke-width:2px
+    linkStyle 1,2,3 stroke:#424242,stroke-width:1.5px
+    linkStyle 6,7,8,9 stroke:#c62828,stroke-width:2px,stroke-dasharray: 5 5
+
 ````
 ---
 
