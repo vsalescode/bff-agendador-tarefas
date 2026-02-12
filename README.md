@@ -37,31 +37,91 @@ Cliente → BFF → Microsserviços (Auth, Core, Notificação)
 
 ------------------------------------------------------------------------
 
-## 🧩 Microsserviços
+---
 
-### 🔵 Usuario Service (Porta 8080)
+## 🧩 Arquitetura de Microsserviços
 
--   PostgreSQL
--   Spring Security + JWT
--   Gestão de usuários, autenticação e dados relacionais
+O ecossistema é composto por quatro serviços independentes, cada um com responsabilidade bem definida, seguindo princípios de **Single Responsibility** e **Arquitetura Distribuída**.
 
-### 🟠 Tarefas Core (Porta 8081)
+---
 
--   MongoDB
--   CRUD de tarefas
--   Regras de datas e persistência schemaless
+### 🔵 Usuario Service  
+📍 **Porta:** `8080`  
+🔗 **Repositório:** https://github.com/vsalescode/usuario  
 
-### 🟣 Notificação Service (Porta 8082)
+**Responsabilidade:** Identity Provider e gestão de usuários.
 
--   Thymeleaf
--   JavaMail
--   Geração de e-mails HTML responsivos via SMTP
+**Stack Principal:**
+- PostgreSQL  
+- Spring Security  
+- JWT (Autenticação Stateless)  
+- JPA / Hibernate  
 
-### 🟢 BFF Agendador (Porta 8083)
+**Funções:**
+- Cadastro e autenticação de usuários  
+- Emissão de Token JWT  
+- Gestão de endereços e telefones  
+- Proteção de rotas sensíveis  
 
--   OpenFeign
--   Scheduler
--   API Gateway e motor de automação
+---
+
+### 🟠 Tarefas Core  
+📍 **Porta:** `8081`  
+🔗 **Repositório:** https://github.com/vsalescode/agendador-tarefas  
+
+**Responsabilidade:** Núcleo de regras de negócio e persistência de tarefas.
+
+**Stack Principal:**
+- MongoDB  
+- Spring Data MongoDB  
+- OpenFeign (integração com User Service)  
+
+**Funções:**
+- CRUD de tarefas  
+- Consultas por intervalo de tempo  
+- Gerenciamento de status (`PENDENTE → NOTIFICADO → CANCELADO`)  
+- Base de dados otimizada para o Scheduler  
+
+---
+
+### 🟣 Notification Service  
+📍 **Porta:** `8082`  
+🔗 **Repositório:** https://github.com/vsalescode/notificacao  
+
+**Responsabilidade:** Renderização e envio de e-mails.
+
+**Stack Principal:**
+- Thymeleaf  
+- Spring Mail (JavaMailSender)  
+- SMTP  
+
+**Funções:**
+- Processamento de templates HTML  
+- Envio de e-mails responsivos  
+- Tratamento de falhas SMTP  
+- Serviço stateless (sem banco de dados)  
+
+---
+
+### 🟢 BFF Agendador  
+📍 **Porta:** `8083`  
+🔗 **Repositório:** Este serviço  
+
+**Responsabilidade:** Orquestração e automação do sistema.
+
+**Stack Principal:**
+- Spring Cloud OpenFeign  
+- Scheduler (Cron Job)  
+- API Gateway  
+
+**Funções:**
+- Gateway central para o front-end  
+- Auto-login para geração de JWT  
+- Execução periódica do cron  
+- Coordenação entre Core e Notification  
+- Atualização automática de status  
+
+---
 
 ------------------------------------------------------------------------
 
