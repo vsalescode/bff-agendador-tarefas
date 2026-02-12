@@ -43,6 +43,27 @@ Cliente → BFF → Microsserviços (Auth, Core, Notificação)
 
 O ecossistema é composto por quatro serviços independentes, cada um com responsabilidade bem definida, seguindo princípios de **Single Responsibility** e **Arquitetura Distribuída**.
 
+````mermaid
+flowchart TD
+    User["📱 Cliente / Front-end"] -->|"HTTP/JSON"| BFF("🟢 BFF Agendador :8083")
+    
+    subgraph "Camada de Orquestração"
+        BFF -->|"Validação & Login"| Auth("🔵 Usuário Service :8080")
+        BFF -->|"Gestão de Tarefas"| Core("🟠 Tarefas Core :8081")
+        BFF -->|"Disparo de Email"| Notif("🟣 Notificação Service :8082")
+    end
+    
+    subgraph "Automação (Cron Job)"
+        BFF -- "A cada 5 min" --> BFF
+        BFF -- "Busca Tarefas Próximas" --> Core
+        Core -- "Lista de Tarefas" --> BFF
+        BFF -- "Envia Email HTML" --> Notif
+        BFF -- "Atualiza Status" --> Core
+    end
+
+    Auth --> Postgres[("🐘 PostgreSQL")]
+    Core --> Mongo[("🍃 MongoDB")]
+````
 ---
 
 ### 🔵 Usuario Service  
@@ -181,3 +202,7 @@ Desenvolvido por **João Victor**
 
 🔗 [LinkedIn](https://www.linkedin.com/in/vsalescode/)
 🌐 [Portfólio](https://portfolio-vsalescode.vercel.app/)
+
+
+
+    
